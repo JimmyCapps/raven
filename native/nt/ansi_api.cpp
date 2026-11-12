@@ -59,6 +59,8 @@ const Adapter adapters[] = {
 	{"GlobalGetAtomNameA", {}, 1, 2},
 	{"CreateFileA", {0}},
 	{"GetFileAttributesA", {0}},
+	// The attribute data it fills has no text, the same in both forms; Counter-Strike: Source asks it at start.
+	{"GetFileAttributesExA", {0}},
 	{"SetupDiGetClassDevsA", {1}},
 	{"SetFileAttributesA", {0}},
 	{"DeleteFileA", {0}},
