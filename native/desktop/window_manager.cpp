@@ -1332,7 +1332,9 @@ void NativeWindows::register_manager_api(ApiRegistry &registry)
 			call.fail(0);
 			return;
 		}
-		const uint32_t size = call.load<uint16_t>(call[2] + 36);
+		// dmSize says which DEVMODEA the caller knows; nothing past the largest one (156 bytes) is the caller's to receive, whatever an
+		// uninitialised size claims (WinQuake passed 32372 and the write ran past its structure).
+		const uint32_t size = std::min<uint32_t>(call.load<uint16_t>(call[2] + 36), 156);
 		if (size < 124) {
 			call.fail(87);
 			return;
