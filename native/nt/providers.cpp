@@ -3320,9 +3320,33 @@ NativeResult run_native_process(ModuleSet &modules, PEModule &entry,
 			}
 			std::optional<ModuleBytes> bytes;
 			std::filesystem::path origin;
+			// LOAD_WITH_ALTERED_SEARCH_PATH: a library loaded by path finds its dependencies in its own folder before anywhere else, so
+			// Steam's steamclient64.dll binds Steam's tier0_s64.dll, not the older one a game ships in its own folders.
+			const auto own_folder = [&] {
+				for (const auto &[name, path] : explicit_files) {
+					std::error_code error;
+					for (const auto &entry : std::filesystem::directory_iterator(path.parent_path(), error)) {
+						auto candidate = entry.path().filename().string();
+						for (auto &character : candidate)
+							if (character >= 'A' && character <= 'Z')
+								character = static_cast<char>(character + ('a' - 'A'));
+						if (candidate == identity && entry.is_regular_file(error))
+							return std::optional<std::filesystem::path>(entry.path());
+					}
+				}
+				return std::optional<std::filesystem::path>();
+			};
+			// Only for the program's own libraries: the system's are the runtime's, whatever copies a folder holds.
+			const auto system_list = system_library_names();
+			const bool system_name = std::find(system_list.begin(), system_list.end(), identity) != system_list.end();
+			const auto altered = (flags & 0x8) && !system_name ? own_folder() : std::nullopt;
 			if (const auto explicit_file = explicit_files.find(identity); explicit_file != explicit_files.end()) {
 				bytes = ModuleBytes::map(explicit_file->second);
 				origin = explicit_file->second;
+			} else if (altered) {
+				bytes = ModuleBytes::map(*altered);
+				origin = *altered;
+				explicit_files.emplace(identity, *altered);
 			} else {
 				const auto system_names = system_library_names();
 				const bool system = std::find(system_names.begin(), system_names.end(), identity) != system_names.end();
