@@ -778,6 +778,9 @@ void NativeDesktop::register_text_api(ApiRegistry &registry)
 			call.ret(bitmap.size());
 		});
 	});
+	// The narrow form: the character codes programs pass are ASCII, the same in both forms (Source games outline their HUD text with it).
+	if (const auto wide = registry.find("GetGlyphOutlineW"))
+		registry.add("GetGlyphOutlineA", 7, [handler = wide->second](ApiCall &call) { handler(call); });
 	// GetFontData(dc, table, offset, buffer, size): a table of the font file the selected font uses, its tag in file order (the bytes of
 	// "hhea" as they read); without a buffer the length from the offset. The whole file (table 0) is not handed out: GDI_ERROR, as for a
 	// table the font does not have.
@@ -1444,6 +1447,11 @@ void NativeDesktop::register_text_api(ApiRegistry &registry)
 	// Fonts come from the system's own list here: a private font that exists counts as added, and its faces stay out of the list.
 	registry.add("AddFontResourceExW", 3, [](ApiCall &call) { call.ret(call[0] ? 1 : 0); });
 	registry.add("RemoveFontResourceExW", 3, [](ApiCall &call) { call.ret(call[0] ? 1 : 0); });
+	// The other spellings of the same: a program's private fonts are accepted, as the wide form is (Source games add theirs at start).
+	for (const auto name : {"AddFontResourceA", "AddFontResourceW", "RemoveFontResourceA", "RemoveFontResourceW"})
+		registry.add(name, 1, [](ApiCall &call) { call.ret(call[0] ? 1 : 0); });
+	for (const auto name : {"AddFontResourceExA", "RemoveFontResourceExA"})
+		registry.add(name, 3, [](ApiCall &call) { call.ret(call[0] ? 1 : 0); });
 	// ScriptGetFontScriptTags(dc, cache, analysis, capacity, tags, count): the default script serves every font's text here.
 	registry.add("ScriptGetFontScriptTags", 6, [](ApiCall &call) {
 		if (!call[4] || !call[5] || call.i32(3) < 1) {
