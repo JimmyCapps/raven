@@ -157,6 +157,9 @@ void NativeWindows::register_api(ApiRegistry &registry)
 	registry.add("GetDoubleClickTime", 0, [](ApiCall &call) { call.ret(500); });
 	registry.add("GetCaretBlinkTime", 0, [](ApiCall &call) { call.ret(530); });
 	registry.add("GetKeyboardLayout", 1, [](ApiCall &call) { call.ret(0x04090409); });
+	// The one layout there is: loading or activating a layout by name gives it back (Source games load one at start).
+	for (const auto name : {"LoadKeyboardLayoutA", "LoadKeyboardLayoutW", "ActivateKeyboardLayout"})
+		registry.add(name, 2, [](ApiCall &call) { call.ret(0x04090409); });
 	// The extra information of a thread's last message: what the thread itself set, since no input source attaches any.
 	registry.add("GetMessageExtraInfo", 0, [](ApiCall &call) { call.ret(message_extra_info()); });
 	registry.add("SetMessageExtraInfo", 1, [](ApiCall &call) {

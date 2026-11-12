@@ -30,6 +30,7 @@ constexpr std::array exported{
 	Export{"user32.dll", "ChangeDisplaySettingsExW", 5}, Export{"user32.dll", "ChangeDisplaySettingsExA", 5},
 	Export{"user32.dll", "ChangeDisplaySettingsA", 2}, Export{"user32.dll", "ChangeDisplaySettingsW", 2},
 	Export{"gdi32.dll", "GetSystemPaletteEntries", 4}, Export{"winmm.dll", "joyGetNumDevs", 0},
+	Export{"user32.dll", "LoadKeyboardLayoutA", 2}, Export{"user32.dll", "LoadKeyboardLayoutW", 2},
 	Export{"user32.dll", "DisplayConfigGetDeviceInfo", 1}, Export{"user32.dll", "EnumDisplayDevicesA", 4},
 	Export{"user32.dll", "SetProcessDPIAware", 0},
 	Export{"gdi32.dll", "D3DKMTCloseAdapter", 1}, Export{"gdi32.dll", "D3DKMTCreateDCFromMemory", 1}, Export{"gdi32.dll", "D3DKMTCreateDevice", 1},
@@ -419,6 +420,9 @@ bool NativeX86System::dispatch(std::string_view name)
 	} else if (name == "GetSystemPaletteEntries") {
 		// The display is true colour, not a palette device: no system palette entries, as Windows answers on such a display.
 		process.return_api(0);
+	} else if (name == "LoadKeyboardLayoutA" || name == "LoadKeyboardLayoutW") {
+		// The one layout there is, US English, whatever name is asked for.
+		process.return_api(0x04090409);
 	} else if (name == "joyGetNumDevs") {
 		// No joystick driver: programs that probe for one at start go on without it.
 		process.return_api(0);
