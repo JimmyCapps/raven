@@ -2118,6 +2118,8 @@ NativeResult run_native_process(ModuleSet &modules, PEModule &entry,
 		"NtCreateKeyedEvent", "NtOpenKeyedEvent",
 		// Looked up by diagnostics code that records where a call came from.
 		"RtlCaptureStackBackTrace",
+		// The loader's record of unloaded modules, which Steam's steamui.dll imports for its crash reports.
+		"RtlGetUnloadEventTraceEx",
 		// What the virtualization layer of Click-to-Run Office imports from ntdll: more of the registry and the objects, counted strings,
 		// file name expressions, and the generic tables, which the guest RTL holds.
 		"NtDuplicateObject", "NtEnumerateKey", "NtEnumerateValueKey", "NtFlushKey", "NtNotifyChangeKey", "NtNotifyChangeMultipleKeys",

@@ -711,6 +711,29 @@ void register_system_api(ApiRegistry &registry, KernelContext &context)
 		call.write(call[0], bytes);
 		call.ret(0);
 	});
+	// The loader's ring of unloaded modules, as ntdll publishes it: a pointer to the size of one record, a pointer to the number of
+	// records and a pointer to the pointer to the records. Raven keeps no such record, so the ring is empty: crash handlers such as
+	// Steam's steamui.dll read a count of zero. One block per process, made on the first call.
+	registry.add("RtlGetUnloadEventTraceEx", 3, [&, block = std::make_shared<uint64_t>(0)](ApiCall &call) {
+		const uint64_t width = call.pointer_width();
+		// RTL_UNLOAD_EVENT_TRACE: base and size (pointers), sequence, time stamp and checksum, a 32-character name and two version words.
+		const uint32_t record = uint32_t((width * 2 + 12 + 64 + 8 + width - 1) / width * width);
+		if (!*block) {
+			const auto address = context.allocator.allocate(8 + width + record);
+			if (!address)
+				return;
+			call.store<uint32_t>(address, record);
+			call.store<uint32_t>(address + 4, 0);
+			call.store_pointer(address + 8, address + 8 + width);
+			*block = address;
+		}
+		if (call[0])
+			call.store_pointer(call[0], *block);
+		if (call[1])
+			call.store_pointer(call[1], *block + 4);
+		if (call[2])
+			call.store_pointer(call[2], *block + 8);
+	});
 	// The device family and form of a desktop PC whose maker named no form; sizes are in bytes with the terminator.
 	registry.add("RtlConvertDeviceFamilyInfoToString", 4, [](ApiCall &call) {
 		constexpr std::u16string_view family = u"Windows.Desktop", form = u"Unknown";
