@@ -353,11 +353,16 @@ NativeMemoryRange NativeMemory::protect(uint64_t address, uint64_t size, uint32_
 		return {0,0,invalid};
 	if (const auto image=image_of(address,size); image!=images.end() && region(address & ~uint64_t(4095),1)==regions.end()) {
 		// Image storage belongs to this process, including a writable copy requested for an interception patch.
-		const auto permissions=protection(access==8 ? 4 : access==0x80 ? 0x40 : access);
-		if (permissions<0)
-			return {0,0,0xc0000045U};
 		const auto base=address & ~uint64_t(4095), length=(size+address-base+4095)&~uint64_t(4095);
 		const auto previous=image->second.access_of(base-image->first);
+		auto wanted=access==8 ? 4 : access==0x80 ? 0x40 : access;
+		// A 32-bit program that makes its own code writable goes on running it, as Windows lets a 32-bit process that did not opt in to
+		// data execution prevention: WinQuake's Sys_MakeCodeWriteable asks for PAGE_READWRITE on its code and then executes it.
+		if (user_limit==x86_user_limit && wanted==4 && (previous & 0xf0))
+			wanted=0x40;
+		const auto permissions=protection(wanted);
+		if (permissions<0)
+			return {0,0,0xc0000045U};
 		process.protect_image(base,length,permissions);
 		for (uint64_t page=base;page<base+length;page+=4096)
 			image->second.pages[page-image->first]=access;
