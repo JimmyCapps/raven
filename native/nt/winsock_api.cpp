@@ -2326,6 +2326,9 @@ void register_winsock_api(ApiRegistry &registry, KernelContext &context)
 		call.ret(0);
 		(void)count;
 	};
+	// The old host lookup answers that the name is not known (WSAHOST_NOT_FOUND); programs that try it first, as Source games do for
+	// their LAN address, go on to getaddrinfo or without it.
+	registry.add("gethostbyname", 1, [](ApiCall &call) { call.fail(11001, 0); });
 	registry.add("getaddrinfo", 4, [resolve_names](ApiCall &call) { resolve_names(call, false); });
 	registry.add("GetAddrInfoW", 4, [resolve_names](ApiCall &call) { resolve_names(call, true); });
 	// GetAddrInfoEx resolves at once even when the caller passes an OVERLAPPED: the answer is the result, which the caller handles as a
