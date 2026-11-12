@@ -365,7 +365,7 @@ NativeMemoryRange NativeMemory::protect(uint64_t address, uint64_t size, uint32_
 			return {0,0,0xc0000045U};
 		process.protect_image(base,length,permissions);
 		for (uint64_t page=base;page<base+length;page+=4096)
-			image->second.pages[page-image->first]=access;
+			image->second.pages[page-image->first]=wanted==0x40 && access==4 ? 0x40 : access;
 		return {base,length,0,previous};
 	}
 	if (protection(access)<0)
@@ -379,10 +379,12 @@ NativeMemoryRange NativeMemory::protect(uint64_t address, uint64_t size, uint32_
 		return {0,0,0xc000002dU};
 	const auto previous=found->second.pages.at(first);
 	// The same for a 32-bit program's image, which this process holds as a region: its code made writable stays executable.
-	const auto permissions=protection(user_limit==x86_user_limit && access==4 && (previous & 0xf0) ? 0x40 : access);
+	const uint32_t kept=user_limit==x86_user_limit && access==4 && (previous & 0xf0) ? 0x40 : access;
+	const auto permissions=protection(kept);
 	close_windows(base,base+length);
 	process.protect_memory(base,length,permissions);
-	found->second.pages.fill(first,count,access);
+	// Recorded as executable, so a later change of a page it shares with other code does not take execute away from that code.
+	found->second.pages.fill(first,count,kept);
 	return {base,length,0,previous};
 }
 
