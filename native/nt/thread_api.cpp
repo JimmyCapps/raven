@@ -992,6 +992,8 @@ void register_thread_api(ApiRegistry &registry, KernelContext &context)
 		// A thread in background processing mode runs at idle priority; its own priority returns when it leaves the mode.
 		call.ret(uint32_t(thread->background ? -15 : thread->priority));
 	});
+	// The processor a thread should prefer is advice the host scheduler takes on its own: the previous choice was processor 0.
+	registry.add("SetThreadIdealProcessor", 2, [](ApiCall &call) { call.ret(0); });
 	registry.add("SetThreadPriority", 2, [&threads, thread_from](ApiCall &call) {
 		const auto thread = thread_from(call[0]);
 		if (!thread) {
