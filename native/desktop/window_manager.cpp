@@ -1351,6 +1351,12 @@ void NativeWindows::register_manager_api(ApiRegistry &registry)
 		call.write(call[2], bytes);
 		call.ret(1);
 	};
+	// A mode change is accepted without changing anything, as the 32-bit side does: the host shows the program's window at its own
+	// size. Games that set a mode at start (WinQuake, many of its era) stop on a missing function otherwise.
+	for (const auto name : {"ChangeDisplaySettingsA", "ChangeDisplaySettingsW"})
+		registry.add(name, 2, [](ApiCall &call) { call.ret(0); });
+	for (const auto name : {"ChangeDisplaySettingsExA", "ChangeDisplaySettingsExW"})
+		registry.add(name, 5, [](ApiCall &call) { call.ret(0); });
 	registry.add("EnumDisplaySettingsA", 3, [=](ApiCall &call) { display_mode_ansi(call); });
 	registry.add("EnumDisplaySettingsExA", 4, [=](ApiCall &call) { display_mode_ansi(call); });
 	// There is no kernel graphics subsystem behind the host's display: the adapter thunks report that the request is not supported, and
