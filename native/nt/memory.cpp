@@ -368,8 +368,7 @@ NativeMemoryRange NativeMemory::protect(uint64_t address, uint64_t size, uint32_
 			image->second.pages[page-image->first]=access;
 		return {base,length,0,previous};
 	}
-	const auto permissions=protection(access);
-	if (permissions<0)
+	if (protection(access)<0)
 		return {0,0,0xc0000045U};
 	const auto base=address & ~uint64_t(4095), length=(size+address-base+4095)&~uint64_t(4095);
 	const auto found=region(base,length);
@@ -379,6 +378,8 @@ NativeMemoryRange NativeMemory::protect(uint64_t address, uint64_t size, uint32_
 	if (found->second.pages.any_zero(first,count))
 		return {0,0,0xc000002dU};
 	const auto previous=found->second.pages.at(first);
+	// The same for a 32-bit program's image, which this process holds as a region: its code made writable stays executable.
+	const auto permissions=protection(user_limit==x86_user_limit && access==4 && (previous & 0xf0) ? 0x40 : access);
 	close_windows(base,base+length);
 	process.protect_memory(base,length,permissions);
 	found->second.pages.fill(first,count,access);
